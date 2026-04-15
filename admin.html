@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ site_name }} - Dashboard</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/sanjaya_logo.png') }}" type="image/x-icon">
+    
+    <style>
+        :root {
+            --bg: #0b0f1a;
+            --card: #161b2c;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --idle: #64748b;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        body {
+            background: var(--bg);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* --- NAVIGATION --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: var(--card);
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .logo-box { display: flex; align-items: center; gap: 15px; }
+        .logo-box img { height: 40px; }
+
+        .nav-controls { display: flex; align-items: center; gap: 15px; }
+
+        .btn-home {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-home:hover { background: var(--primary); color: white; }
+
+        .role-indicator {
+            padding: 4px 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+        }
+
+        /* --- CARDS & TABLES --- */
+        .container { display: grid; grid-template-columns: 1fr 2fr; gap: 25px; }
+        .card {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 20px;
+        }
+
+        .full-width { grid-column: span 2; }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+        th { text-align: left; padding: 15px; color: #64748b; font-size: 0.85rem; text-transform: uppercase; }
+        td { padding: 15px; background: rgba(255,255,255,0.02); }
+        tr td:first-child { border-radius: 12px 0 0 12px; }
+        tr td:last-child { border-radius: 0 12px 12px 0; }
+
+        /* --- FORMS --- */
+        input, select {
+            background: #0b0f1a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: 0.3s;
+        }
+
+        .input-error {
+            border-color: var(--danger) !important;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* --- STATUS BADGES --- */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .online { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .online::before { content: ''; width: 6px; height: 6px; background: var(--success); border-radius: 50%; animation: pulse-dot 1.2s infinite; }
+        .offline { background: rgba(148, 163, 184, 0.1); color: var(--idle); border: 1px solid rgba(148, 163, 184, 0.2); }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .room-tag {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .room-tag-unknown {
+            background: #475569;
+            color: #cbd5e1;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border: 1px dashed #94a3b8;
+        }
+
+        .btn-logout { text-decoration: none; color: #94a3b8; font-weight: 600; }
+        .btn-logout:hover { color: #f87171; }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 5px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: 0.3s;
+        }
+        .btn-delete:hover { background: var(--danger); color: white; }
+
+        /* Notification Toast */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        /* Training Pulse Animation */
+        .training-pulse { animation: pulse-red 2s infinite; }
+        @keyframes pulse-red {
+            0% { color: var(--danger); }
+            50% { color: var(--warning); }
+            100% { color: var(--danger); }
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            background: #0b0f1a;
+            border-radius: 10px;
+            height: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--success);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* Multi-Live Item Styling */
+        .live-item {
+            padding: 15px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast"></div>
+
+    <div class="header">
+        <div class="logo-box">
+            <img src="{{ url_for('static', filename='images/sanjaya_logo.png') }}">
+            <div>
+                <h2 style="margin:0; font-size: 1.2rem;">Sanjaya Vision</h2>
+                <span class="role-indicator">{{ session['role'] }}</span>
+            </div>
+        </div>
+        
+        <div class="nav-controls">
+            <a href="/admin" class="btn-home">Dashboard Home</a>
+            {% if session['role'] == 'admin' %}
+                <button onclick="toggleManagement()" class="btn-home" style="background:rgba(16, 185, 129, 0.1); border-color:var(--success); color:var(--success);">Manage System</button>
+            {% endif %}
+        </div>
+
+        <a href="/logout" class="btn-logout">Logout</a>
+    </div>
+
+    {% if session['role'] == 'admin' %}
+    <div id="management-section" class="card" style="display:none; margin-bottom: 30px; border: 1px solid var(--success);">
+        <h3 style="color:var(--success); margin-top:0;">Management Console</h3>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;">
+            
+            <div style="background:rgba(255,255,255,0.03); padding:20px; border-radius:15px;">
+                <h4 style="margin-top:0;">1. Register Student ID</h4>
+                <input type="text" id="new_sid" placeholder="Student ID (e.g. W8)" style="width:100%;">
+                <button onclick="submitStudent()" class="btn-home" style="width:100%; background:var(--success); color:white; border:none;">Register Student</button>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.03); padding:20px; border-radius:15px;">
+                <h4 style="margin-top:0;">2. Create User Account</h4>
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <input type="text" id="new_uname" placeholder="Username" style="flex:1;">
+                    <input type="password" id="new_pword" placeholder="Password" style="flex:1;">
+                </div>
+                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                    <select id="new_role" style="flex:1;" onchange="handleRoleChange()">
+                        <option value="parent">Role: Parent</option>
+                        <option value="mentor">Role: Mentor</option>
+                        <option value="admin">Role: Admin</option>
+                    </select>
+                    <select id="link_student" style="flex:1;" size="1">
+                        <option value="">Link to Student...</option>
+                    </select>
+                </div>
+                <p id="mentor-note" style="font-size:0.7rem; color:var(--warning); display:none; margin:5px 0;">* Hold Ctrl (or Cmd) to select multiple students for Mentors.</p>
+                <button onclick="submitUser()" class="btn-home" style="width:100%; margin-top:10px;">Create User</button>
+            </div>
+
+        </div>
+
+        <div style="margin-top:25px; padding:20px; border-radius:15px; background:rgba(59, 130, 246, 0.05); border:1px solid rgba(59,130,246,0.3);">
+            <h4 style="margin-top:0; color:var(--primary);">3. WiFi Training Mode</h4>
+            <div style="display:flex; gap:15px; align-items:center;">
+                <input type="text" id="train_room" placeholder="Enter Room Name" style="flex:2; margin-bottom:0;">
+                <button id="train_btn" onclick="toggleTraining()" class="btn-home" style="flex:1;">Start Training</button>
+            </div>
+            <div id="train_status" style="margin-top:15px; font-weight:bold; font-size:0.9rem;">Status: <span style="color:var(--idle);">Idle</span></div>
+            <div class="progress-container" id="prog_container"><div class="progress-bar" id="prog_bar"></div></div>
+        </div>
+
+        <div style="margin-top:25px; background:rgba(255,255,255,0.02); padding:20px; border-radius:15px; border:1px solid #334155;">
+            <h4 style="margin-top:0; color:#e2e8f0;">4. Fingerprint Database</h4>
+            <table>
+                <thead><tr><th>Room</th><th>Network</th><th>RSSI</th><th>Action</th></tr></thead>
+                <tbody id="fingerprint-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="container">
+        {% if session['role'] in ['parent', 'mentor'] or search_id %}
+            <div class="card">
+                <h3 style="margin-top:0; color:var(--primary);">Linked Students</h3>
+                <div id="live-content">Connecting...</div>
+            </div>
+            <div class="card">
+                <h3 style="margin-top:0;">Activity History</h3>
+                <p style="font-size:0.75rem; color:var(--idle);">Showing last 10 movements</p>
+                <table>
+                    <thead><tr><th>Zone</th><th>Time</th></tr></thead>
+                    <tbody id="history-body"></tbody>
+                </table>
+            </div>
+
+        {% else %}
+            <div class="card full-width">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                    <h3 style="margin:0;">Live Campus Overview</h3>
+                    <form action="/admin" method="GET" style="display:flex; gap:10px;">
+                        <input type="text" name="search_id" placeholder="ID Search..." required>
+                        <button type="submit" class="btn-home" style="padding:5px 15px;">Go</button>
+                    </form>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Current Zone</th>
+                            <th>Last Seen</th>
+                            <th>Status</th>
+                            {% if session['role'] == 'admin' %}<th>Management</th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody id="all-students-body"></tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+    const USER_ROLE = "{{ session['role'] }}";
+    const SEARCH_ID = "{{ search_id if search_id else '' }}";
+    let isTrainingModeActive = false;
+
+    function showToast(msg, type = 'success') {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.background = type === 'success' ? 'var(--success)' : 'var(--danger)';
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+
+    // UPDATED REFRESH DATA FOR MULTI-STUDENT
+    function refreshData() {
+        fetch(`/api/get_updates?search_id=${SEARCH_ID}`)
+            .then(r => r.json())
+            .then(data => {
+                // 1. Training Progress
+                if (data.training_progress !== undefined && isTrainingModeActive) {
+                    const statusDiv = document.getElementById('train_status');
+                    const progBar = document.getElementById('prog_bar');
+                    const count = parseInt(data.training_progress);
+                    statusDiv.innerHTML = `Status: <span class="training-pulse">CALIBRATING (${count}/10)</span>`;
+                    progBar.style.width = (count * 10) + "%";
+                    if (count >= 10) setTimeout(stopTrainingUI, 2000);
+                }
+
+                // 2. Focused View (Mentor/Parent/Search)
+                if (USER_ROLE === 'parent' || USER_ROLE === 'mentor' || SEARCH_ID !== "") {
+                    const liveContent = document.getElementById('live-content');
+                    if (data.multi_live && data.multi_live.length > 0) {
+                        liveContent.innerHTML = data.multi_live.map(live => {
+                            const active = (live.is_active == 1);
+                            return `
+                                <div class="live-item">
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <b style="color:var(--primary); font-size:1.1rem;">${live.student_id}</b>
+                                        <span class="status-badge ${active ? 'online' : 'offline'}">${active ? 'ACTIVE' : 'IDLE'}</span>
+                                    </div>
+                                    <div style="margin-top:10px;">
+                                        <span class="${live.last_room === 'Unknown Area' ? 'room-tag-unknown' : 'room-tag'}">${live.last_room}</span>
+                                        <small style="margin-left:10px; color:var(--idle);">${live.last_updated}</small>
+                                    </div>
+                                </div>`;
+                        }).join('');
+                    } else {
+                        liveContent.innerHTML = "<p style='color:var(--idle);'>No linked students found.</p>";
+                    }
+
+                    if (data.history) {
+                        document.getElementById('history-body').innerHTML = data.history.map(h => `
+                            <tr>
+                                <td><span class="${h.room_name === 'Unknown Area' ? 'room-tag-unknown' : 'room-tag'}" style="opacity:0.8; font-size:0.7rem;">${h.room_name}</span></td>
+                                <td style="color:#94a3b8; font-size:0.8rem;">${h.timestamp}</td>
+                            </tr>`).join('');
+                    }
+                } 
+                // 3. Admin Table View
+                else {
+                    const studentBody = document.getElementById('all-students-body');
+                    if (data.students && studentBody) {
+                        studentBody.innerHTML = data.students.map(s => {
+                            const active = (s.is_active == 1);
+                            return `
+                            <tr>
+                                <td><b style="color:var(--primary)">${s.student_id}</b></td>
+                                <td><span class="${s.last_room === 'Unknown Area' ? 'room-tag-unknown' : 'room-tag'}">${s.last_room}</span></td>
+                                <td style="color:#94a3b8;">${s.last_updated}</td>
+                                <td><span class="status-badge ${active ? 'online' : 'offline'}">${active ? 'ONLINE' : 'IDLE'}</span></td>
+                                ${USER_ROLE === 'admin' ? `<td><button class="btn-delete" onclick="deleteStudent('${s.student_id}')">REMOVE</button></td>` : ''}
+                            </tr>`;
+                        }).join('');
+                    }
+                }
+            });
+    }
+
+    // --- ROLE LOGIC FOR MULTI-SELECT ---
+    function handleRoleChange() {
+        const role = document.getElementById('new_role').value;
+        const select = document.getElementById('link_student');
+        const note = document.getElementById('mentor-note');
+        
+        if (role === 'mentor') {
+            select.setAttribute('multiple', 'multiple');
+            select.setAttribute('size', '5');
+            note.style.display = 'block';
+        } else {
+            select.removeAttribute('multiple');
+            select.setAttribute('size', '1');
+            note.style.display = 'none';
+        }
+    }
+
+    function submitUser() {
+        const uname = document.getElementById('new_uname').value.trim();
+        const pword = document.getElementById('new_pword').value.trim();
+        const role = document.getElementById('new_role').value;
+        const select = document.getElementById('link_student');
+        
+        // Collect multiple values if it's a mentor
+        let values = Array.from(select.selectedOptions).map(option => option.value).filter(v => v !== "");
+        let linkedSid = values.join(', ');
+
+        if (!uname || !pword) return showToast("Missing fields", "error");
+
+        const fd = new FormData();
+        fd.append('username', uname);
+        fd.append('password', pword);
+        fd.append('role', role);
+        fd.append('linked_sid', linkedSid);
+
+        fetch('/api/create_user', { method: 'POST', body: fd })
+            .then(r => r.json()).then(res => {
+                if (res.status === 'success') {
+                    showToast("User Created!");
+                    document.getElementById('new_uname').value = "";
+                    document.getElementById('new_pword').value = "";
+                } else showToast(res.message, 'error');
+            });
+    }
+
+    // Rest of Management functions (submitStudent, deleteStudent, training, etc.)
+    function submitStudent() {
+        const sidInput = document.getElementById('new_sid');
+        const sid = sidInput.value.trim();
+        if (!sid) return sidInput.classList.add('input-error');
+        const fd = new FormData();
+        fd.append('student_id', sid);
+        fetch('/api/register_student', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
+            if (res.status === 'success') { showToast("Student Registered!"); sidInput.value = ""; refreshData(); loadStudentDropdown(); }
+            else showToast(res.message, 'error');
+        });
+    }
+
+    function deleteStudent(sid) {
+        if (!confirm(`Remove student ${sid}?`)) return;
+        const fd = new FormData(); fd.append('student_id', sid);
+        fetch('/api/delete_student', { method: 'POST', body: fd }).then(() => { showToast("Student Removed"); refreshData(); loadStudentDropdown(); });
+    }
+
+    function loadStudentDropdown() {
+        fetch('/api/list_students').then(r => r.json()).then(data => {
+            const select = document.getElementById('link_student');
+            if(!select) return;
+            select.innerHTML = '<option value="">Link to Student...</option>';
+            data.forEach(id => { select.innerHTML += `<option value="${id}">${id}</option>`; });
+        });
+    }
+
+    function toggleTraining() {
+        const roomInput = document.getElementById('train_room');
+        const btn = document.getElementById('train_btn');
+        if (!isTrainingModeActive) {
+            if (!roomInput.value) return alert("Enter Room Name!");
+            const fd = new FormData(); fd.append('active', 'true'); fd.append('room_name', roomInput.value);
+            fetch('/api/toggle_training', { method: 'POST', body: fd }).then(() => {
+                isTrainingModeActive = true; btn.innerText = "Stop Training"; btn.style.background = "var(--danger)";
+                document.getElementById('prog_container').style.display = "block";
+            });
+        } else {
+            const fd = new FormData(); fd.append('active', 'false');
+            fetch('/api/toggle_training', { method: 'POST', body: fd }).then(stopTrainingUI);
+        }
+    }
+
+    function stopTrainingUI() {
+        isTrainingModeActive = false;
+        document.getElementById('train_btn').innerText = "Start Training";
+        document.getElementById('train_btn').style.background = "";
+        document.getElementById('prog_container').style.display = "none";
+        document.getElementById('train_status').innerHTML = 'Status: <span style="color:var(--success);">Map Updated!</span>';
+        loadFingerprints();
+        setTimeout(() => { document.getElementById('train_status').innerHTML = 'Status: <span style="color:var(--idle);">Idle</span>'; }, 3000);
+    }
+
+    function loadFingerprints() {
+        fetch('/api/get_fingerprints').then(r => r.json()).then(data => {
+            const tbody = document.getElementById('fingerprint-table-body');
+            if(!tbody) return;
+            tbody.innerHTML = data.map(f => `<tr><td><span class="room-tag">${f.room_name}</span></td><td><small>${f.ssid}</small></td><td><b>${f.avg_rssi}</b></td><td><button class="btn-delete" onclick="deleteFingerprint('${f.bssid}')">FORGET</button></td></tr>`).join('');
+        });
+    }
+
+    function deleteFingerprint(bssid) {
+        if (!confirm("Delete this WiFi signature?")) return;
+        const fd = new FormData(); fd.append('bssid', bssid);
+        fetch('/api/delete_fingerprint', { method: 'POST', body: fd }).then(loadFingerprints);
+    }
+
+    function toggleManagement() {
+        const sec = document.getElementById('management-section');
+        sec.style.display = (sec.style.display === 'none') ? 'block' : 'none';
+        if(sec.style.display === 'block') { loadFingerprints(); loadStudentDropdown(); }
+    }
+
+    refreshData();
+    setInterval(refreshData, 3000);
+    if(USER_ROLE === 'admin') loadStudentDropdown();
+    </script>
+</body>
+</html>
